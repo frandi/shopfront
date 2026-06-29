@@ -1,25 +1,28 @@
-import { useEffect, useState } from 'react';
-import { formatMoney } from '@shopfront/shared';
-import { fetchJson } from './api/client';
-
-interface Health {
-  status: string;
-}
+import { Link, Route, Routes } from 'react-router-dom';
+import { useCart } from './cart/CartContext';
+import { Catalog } from './pages/Catalog';
+import { ProductPage } from './pages/Product';
+import { CartPage } from './pages/Cart';
 
 export function App() {
-  const [apiStatus, setApiStatus] = useState('connecting…');
-
-  useEffect(() => {
-    fetchJson<Health>('/health')
-      .then((health) => setApiStatus(health.status))
-      .catch(() => setApiStatus('unavailable'));
-  }, []);
-
+  const { count } = useCart();
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-      <h1>Shopfront</h1>
-      <p>API status: {apiStatus}</p>
-      <p>Sample price: {formatMoney(1999)}</p>
-    </main>
+    <div className="app">
+      <header className="header">
+        <Link to="/" className="logo">
+          Shopfront
+        </Link>
+        <Link to="/cart" className="cart-link">
+          Cart ({count})
+        </Link>
+      </header>
+      <main className="main">
+        <Routes>
+          <Route path="/" element={<Catalog />} />
+          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/cart" element={<CartPage />} />
+        </Routes>
+      </main>
+    </div>
   );
 }

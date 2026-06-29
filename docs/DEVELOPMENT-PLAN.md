@@ -115,8 +115,8 @@ tests cover the money and checkout paths.
 | Phase | State | Notes |
 |---|---|---|
 | 0 — Foundation | ✅ Done | Monorepo builds, lints, and tests green; `pnpm dev` runs web (:5173) + API (:4000) and they communicate. |
-| 1 — Storefront MVP | ⬜ Not started | Next concrete step — first runnable slice. |
-| 2 — Checkout | ⬜ Not started | |
+| 1 — Storefront MVP | ✅ Done | Catalog served from the API; interactive cart; totals panel with subtotal/discount/total; builds/lints/tests/typecheck green. |
+| 2 — Checkout | ⬜ Not started | Next concrete step — shipping + tax + order totals. |
 | 3 — Containerize + CI | ⬜ Not started | |
 | 4 — Correctness & hardening | ⬜ Not started | |
 | 5 — Docs & polish | ⬜ Not started | |
