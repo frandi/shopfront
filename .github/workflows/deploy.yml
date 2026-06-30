@@ -28,13 +28,18 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      # Build first: @shopfront/shared must be compiled to dist/ before typecheck and tests can
+      # resolve it (its package.json types/main point at dist/, which is gitignored, so a clean
+      # checkout has no dist until this step runs).
+      - run: pnpm build
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
 
   docker:
     needs: build-test
+    # Only build/publish the deployable images from the default branch.
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
