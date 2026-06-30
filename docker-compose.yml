@@ -1,0 +1,79 @@
+# Shopfront stack — web (nginx) + api (Node/Express).
+# Bring it up with:  docker compose up --build
+# Then shop at http://localhost:8417  (the web container proxies /api to the api service).
+#
+# Host ports are deliberately uncommon (web 8417 / api 4417 / db 5417) to avoid clashing with
+# the usual 8080 / 4000 / 3000 / 5432 dev servers. Only the host (left) side is remapped; the
+# container-internal ports — nginx :80, the api :4000, postgres :5432 — are unchanged, as are
+# the internal http://api:4000 proxy and the db:5432 connection.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      # Checkout knobs — defaults mirror apps/api/src/config.ts; override here per environment.
+      PORT: "4000"
+      FREE_SHIPPING_THRESHOLD_CENTS: "5000"
+      SHIPPING_FLAT_CENTS: "599"
+      # Connection string for the db service below. NOT consumed yet — the api still serves seed
+      # data (apps/api/src/data/catalog.ts). It's wired here so persistence code can pick it up
+      # with no compose changes (see ARCHITECTURE.md open-decision D1).
+      DATABASE_URL: "postgresql://shopfront:shopfront@db:5432/shopfront"
+    # Published for convenience/debugging (curl the api directly at http://localhost:4417);
+    # the web container reaches the api over the internal network as http://api:4000
+    # regardless of this mapping.
+    ports:
+      - "4417:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # Node 20 has a global fetch; no extra tooling needed in the image.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "8417:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Postgres for local dev — provisioned so persistence work can start with no setup.
+  # Nothing connects to it yet (the api uses seed data); data persists in the named volume below.
+  # Credentials are dev-only; do not reuse them anywhere real.
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: shopfront
+      POSTGRES_PASSWORD: shopfront
+      POSTGRES_DB: shopfront
+    ports:
+      - "5417:5432"
+    # Postgres 18+ stores data under a version-specific subdir, so the volume mounts at
+    # /var/lib/postgresql (not the pre-18 /var/lib/postgresql/data). See docker-library/postgres#1259.
+    volumes:
+      - shopfront-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopfront -d shopfront"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  shopfront-db-data:

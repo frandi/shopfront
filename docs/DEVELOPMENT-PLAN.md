@@ -116,7 +116,7 @@ tests cover the money and checkout paths.
 |---|---|---|
 | 0 — Foundation | ✅ Done | Monorepo builds, lints, and tests green; `pnpm dev` runs web (:5173) + API (:4000) and they communicate. |
 | 1 — Storefront MVP | ✅ Done | Catalog served from the API; interactive cart; totals panel with subtotal/discount/total; builds/lints/tests/typecheck green. |
-| 2 — Checkout | ✅ Done | `POST /api/checkout` assembles subtotal/discount/tax/shipping/grand total (pure rules in `@shopfront/shared`); web fetches and renders them. Free-shipping threshold $50, flat fee $5.99 (env-tunable). ⚠️ On-sale items reflect the deferred discount bug — see [`bugs/0001`](../bugs/0001-discount-applied-as-flat-dollars.md). |
-| 3 — Containerize + CI | ⬜ Not started | |
+| 2 — Checkout | ✅ Done | `POST /api/checkout` assembles subtotal/discount/tax/shipping/grand total (pure rules in `@shopfront/shared`); web fetches and renders them. Free-shipping threshold $50, flat fee $5.99 (env-tunable). |
+| 3 — Containerize + CI | ✅ Done | `docker compose up --build` runs `web` (nginx) + `api` (Node); the web container serves the static build and reverse-proxies `/api` to the API, so it's same-origin and CORS-free. `.github/workflows/deploy.yml` runs install → lint → typecheck → test → build, then builds both images (no push — no registry configured yet). Compose also provisions a `postgres:alpine` `db` service (named volume, `DATABASE_URL` pre-wired) for seamless dev — not yet consumed; the api still serves seed data (open-decision D1). |
 | 4 — Correctness & hardening | ⬜ Not started | |
 | 5 — Docs & polish | ⬜ Not started | |

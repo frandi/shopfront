@@ -1,0 +1,25 @@
+# Keep the build context small and reproducible: never ship host-side installs or build outputs
+# (the images install deps and build fresh inside the build stage).
+**/node_modules
+**/dist
+**/coverage
+**/.vite
+
+# VCS / tooling / local config that the image never needs.
+.git
+.github
+.claude
+.vscode
+.idea
+
+# Docs and notes are not part of any image.
+docs
+bugs
+*.md
+
+# Logs and local environment files.
+*.log
+**/*.log
+.env
+.env.*
+.DS_Store
