@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeTotals, type CartLine } from './cartTotals';
+import { lineUnitPriceCents } from './cartTotals';
 import type { Product } from '../api/products';
 
 function product(overrides: Partial<Product> = {}): Product {
@@ -14,22 +14,11 @@ function product(overrides: Partial<Product> = {}): Product {
   };
 }
 
-describe('computeTotals', () => {
-  it('sums line items with no discount', () => {
-    const lines: CartLine[] = [
-      { product: product({ id: 'a', priceCents: 1200 }), quantity: 2 },
-      { product: product({ id: 'b', priceCents: 1599 }), quantity: 1 },
-    ];
-    const totals = computeTotals(lines);
-    expect(totals.subtotalCents).toBe(3999);
-    expect(totals.discountCents).toBe(0);
-    expect(totals.totalCents).toBe(3999);
+describe('lineUnitPriceCents', () => {
+  it('returns the list price when there is no discount', () => {
+    expect(lineUnitPriceCents(product({ priceCents: 1599 }))).toBe(1599);
   });
 
-  it('uses the list price for the subtotal regardless of promotions', () => {
-    const lines: CartLine[] = [
-      { product: product({ id: 'c', priceCents: 5000, discountPercent: 20 }), quantity: 1 },
-    ];
-    expect(computeTotals(lines).subtotalCents).toBe(5000);
-  });
+  // Order totals (subtotal, discount, tax, shipping, grand total) are computed by the API via
+  // POST /api/checkout; this helper only feeds the per-line column in the cart table.
 });

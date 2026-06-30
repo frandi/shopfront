@@ -17,3 +17,15 @@ export function formatMoney(cents: number): string {
 export function sumCents(amounts: number[]): number {
   return amounts.reduce((total, amount) => total + amount, 0);
 }
+
+/**
+ * Tax on an integer-cents amount at a rate given in basis points.
+ * Rounds to the nearest cent (e.g. `applyTaxRate(4000, 825)` -> `330`).
+ *
+ * @param cents - the amount to tax, in integer cents
+ * @param taxRateBps - the tax rate in basis points (e.g. `825` = 8.25%)
+ * @returns the tax owed, in integer cents
+ */
+export function applyTaxRate(cents: number, taxRateBps: number): number {
+  return Math.round((cents * taxRateBps) / 10000);
+}

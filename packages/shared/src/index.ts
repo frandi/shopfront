@@ -1,2 +1,3 @@
 export { applyDiscount } from './pricing/applyDiscount';
-export { formatMoney, sumCents } from './money';
+export { qualifiesForFreeShipping } from './pricing/freeShipping';
+export { formatMoney, sumCents, applyTaxRate } from './money';

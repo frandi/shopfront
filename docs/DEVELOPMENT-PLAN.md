@@ -1,7 +1,7 @@
 # Shopfront — Development Plan
 
 **Status:** Living document
-**Last updated:** 2026-06-29
+**Last updated:** 2026-06-30
 **Related:** [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 
 > The phased roadmap for building Shopfront. We build the thinnest useful slice first — a shopper can
@@ -116,7 +116,7 @@ tests cover the money and checkout paths.
 |---|---|---|
 | 0 — Foundation | ✅ Done | Monorepo builds, lints, and tests green; `pnpm dev` runs web (:5173) + API (:4000) and they communicate. |
 | 1 — Storefront MVP | ✅ Done | Catalog served from the API; interactive cart; totals panel with subtotal/discount/total; builds/lints/tests/typecheck green. |
-| 2 — Checkout | ⬜ Not started | Next concrete step — shipping + tax + order totals. |
+| 2 — Checkout | ✅ Done | `POST /api/checkout` assembles subtotal/discount/tax/shipping/grand total (pure rules in `@shopfront/shared`); web fetches and renders them. Free-shipping threshold $50, flat fee $5.99 (env-tunable). ⚠️ On-sale items reflect the deferred discount bug — see [`bugs/0001`](../bugs/0001-discount-applied-as-flat-dollars.md). |
 | 3 — Containerize + CI | ⬜ Not started | |
 | 4 — Correctness & hardening | ⬜ Not started | |
 | 5 — Docs & polish | ⬜ Not started | |

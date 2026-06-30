@@ -6,35 +6,14 @@ export interface CartLine {
   quantity: number;
 }
 
-export interface CartTotals {
-  lines: CartLine[];
-  subtotalCents: number;
-  discountCents: number;
-  totalCents: number;
-}
-
-/** The discounted unit price for a product, in integer cents. */
+/**
+ * The discounted unit price for a product, in integer cents — used for the per-line column in
+ * the cart table. Order totals (subtotal, discount, tax, shipping, grand total) are computed by
+ * the API via `POST /api/checkout`; see `api/checkout.ts`.
+ */
 export function lineUnitPriceCents(product: Product): number {
   if (product.discountPercent <= 0) {
     return product.priceCents;
   }
   return applyDiscount(product.priceCents, product.discountPercent);
-}
-
-/** Compute cart totals from the given lines. */
-export function computeTotals(lines: CartLine[]): CartTotals {
-  let subtotalCents = 0;
-  let totalCents = 0;
-
-  for (const line of lines) {
-    subtotalCents += line.product.priceCents * line.quantity;
-    totalCents += lineUnitPriceCents(line.product) * line.quantity;
-  }
-
-  return {
-    lines,
-    subtotalCents,
-    discountCents: subtotalCents - totalCents,
-    totalCents,
-  };
 }

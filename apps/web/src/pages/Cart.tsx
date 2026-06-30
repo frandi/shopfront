@@ -1,20 +1,41 @@
 import { useEffect, useState } from 'react';
 import { formatMoney } from '@shopfront/shared';
 import { fetchProducts, type Product } from '../api/products';
+import { fetchOrderSummary, type OrderSummary } from '../api/checkout';
 import { useCart } from '../cart/CartContext';
-import { computeTotals, lineUnitPriceCents, type CartLine } from '../pricing/cartTotals';
+import { lineUnitPriceCents, type CartLine } from '../pricing/cartTotals';
 import { DiscountBadge } from '../components/DiscountBadge';
 import { TotalsPanel } from '../components/TotalsPanel';
 
 export function CartPage() {
   const { items, setQuantity, remove } = useCart();
   const [catalog, setCatalog] = useState<Product[]>([]);
+  const [summary, setSummary] = useState<OrderSummary | null>(null);
 
   useEffect(() => {
     fetchProducts()
       .then(setCatalog)
       .catch(() => setCatalog([]));
-  }, []);
+  }, [items]);
+
+  useEffect(() => {
+    const checkoutItems = Object.entries(items).map(([id, quantity]) => ({ id, quantity }));
+    if (checkoutItems.length === 0) {
+      setSummary(null);
+      return;
+    }
+    let cancelled = false;
+    fetchOrderSummary(checkoutItems)
+      .then((result) => {
+        if (!cancelled) setSummary(result);
+      })
+      .catch(() => {
+        if (!cancelled) setSummary(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
 
   const lines: CartLine[] = Object.entries(items).flatMap(([id, quantity]) => {
     const product = catalog.find((candidate) => candidate.id === id);
@@ -24,8 +45,6 @@ export function CartPage() {
   if (lines.length === 0) {
     return <p className="notice">Your cart is empty.</p>;
   }
-
-  const totals = computeTotals(lines);
 
   return (
     <section className="cart">
@@ -41,7 +60,7 @@ export function CartPage() {
           </tr>
         </thead>
         <tbody>
-          {totals.lines.map(({ product, quantity }) => (
+          {lines.map(({ product, quantity }) => (
             <tr key={product.id}>
               <td>
                 {product.name}{' '}
@@ -67,7 +86,7 @@ export function CartPage() {
           ))}
         </tbody>
       </table>
-      <TotalsPanel totals={totals} />
+      {summary ? <TotalsPanel totals={summary.totals} /> : <p className="notice">Calculating totals…</p>}
     </section>
   );
 }

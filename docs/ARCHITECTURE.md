@@ -1,7 +1,7 @@
 # Shopfront — Architecture
 
 **Status:** Living document
-**Last updated:** 2026-06-29
+**Last updated:** 2026-06-30
 **Related:** [`DEVELOPMENT-PLAN.md`](./DEVELOPMENT-PLAN.md)
 
 > High-level architecture for Shopfront — the e-commerce storefront for a small online retailer:
@@ -36,9 +36,10 @@ it.
    codebase stays easy to read and change.
 4. **TypeScript end to end.** One language across web, API, and shared library keeps types flowing
    through the stack.
-5. **Configuration through the environment.** Ports, the database URL, the tax rate, and the
-   free-shipping threshold come from environment-driven config in one place, so behavior is tunable
-   per environment without code changes.
+5. **Configuration through the environment.** Ports and the checkout knobs — the free-shipping
+   threshold and flat shipping fee — come from environment-driven config in one place, so behavior is
+   tunable per environment without code changes. (Tax is carried per product as `taxRateBps`, not a
+   global setting; the database URL joins this surface only if the optional Postgres tier is enabled.)
 
 ## 3. System architecture
 
@@ -78,9 +79,10 @@ shopfront/
 │   └── shared/                  # pricing & money domain — used by web AND api
 │       ├── package.json         # name: @shopfront/shared
 │       └── src/
-│           ├── money.ts         # integer-cents money helpers
+│           ├── money.ts         # integer-cents money helpers (format, sum, apply tax rate)
 │           ├── pricing/
-│           │   └── applyDiscount.ts   # discount math (used by the cart)
+│           │   ├── applyDiscount.ts   # percentage-discount math (used by the cart)
+│           │   └── freeShipping.ts    # free-shipping threshold predicate
 │           └── index.ts
 ├── apps/
 │   ├── web/                     # React/Vite storefront  (+ Dockerfile)
@@ -91,12 +93,12 @@ shopfront/
 │   │   └── Dockerfile
 │   └── api/                     # Node/Express HTTP API   (+ Dockerfile)
 │       ├── src/
-│       │   ├── config.ts        # env-driven config (ports, DB URL, tax rate, thresholds)
-│       │   ├── routes/          # products, cart, checkout
+│       │   ├── config.ts        # env-driven config (port, free-shipping threshold, flat shipping fee)
+│       │   ├── routes/          # products, checkout
 │       │   ├── checkout/
-│       │   │   └── freeShipping.ts    # free-shipping threshold logic
+│       │   │   └── freeShipping.ts    # shipping fee: threshold rule + config
 │       │   ├── pricing/
-│       │   │   └── orderTotal.ts      # order total + tax assembly
+│       │   │   └── orderTotal.ts      # order total assembly (line items + tax + shipping)
 │       │   └── data/            # seed catalog
 │       └── Dockerfile
 └── README.md
@@ -109,9 +111,10 @@ shopfront/
 The domain core. Both the web app and the API depend on it, so monetary logic stays consistent across
 the stack.
 
-- `money.ts` — the integer-cents money model and helpers (parse, format, add, multiply by quantity,
-  apply a tax rate). The single source of truth for monetary arithmetic.
+- `money.ts` — the integer-cents money model and helpers (`formatMoney`, `sumCents`, `applyTaxRate`).
+  The single source of truth for monetary arithmetic.
 - `pricing/applyDiscount.ts` — applies a percentage discount to a price; used by the cart's totals.
+- `pricing/freeShipping.ts` — the free-shipping threshold predicate, used by the API at checkout.
 - `index.ts` — the minimal public surface.
 
 Built with `tsc`; consumed via `workspace:*`. Kept dependency-free.
@@ -121,11 +124,11 @@ Built with `tsc`; consumed via `workspace:*`. Kept dependency-free.
 A small, conventional REST API over the catalog and checkout flow — readable route handlers that
 delegate to the shared domain.
 
-- `config.ts` — reads the environment (`PORT`, `DATABASE_URL`, free-shipping threshold, tax rate).
+- `config.ts` — reads the environment (`PORT`, `FREE_SHIPPING_THRESHOLD_CENTS`, `SHIPPING_FLAT_CENTS`).
 - `routes/products.ts` — list / get catalog items.
-- `routes/cart.ts` — compute a cart's line items and totals (delegates to `@shopfront/shared`).
-- `routes/checkout.ts` — order total, tax, shipping.
-- `checkout/freeShipping.ts` — decides whether an order qualifies for free shipping.
+- `routes/checkout.ts` — prices a cart: returns the per-line breakdown plus order totals (subtotal,
+  discount, tax, shipping, grand total), delegating the money math to `@shopfront/shared`.
+- `checkout/freeShipping.ts` — the shipping charge: free above the configured threshold, else the flat fee.
 - `pricing/orderTotal.ts` — assembles the grand total (line items + tax + shipping).
 - `data/catalog.ts` — the seeded product catalog.
 
@@ -158,8 +161,9 @@ follows.
 ## 6. Cross-cutting concerns
 
 - **Pricing & money** — centralized in `@shopfront/shared`; web and API both call it.
-- **Configuration** — `apps/api/src/config.ts` is the single env-driven config surface (ports, DB URL,
-  thresholds, tax rate).
+- **Configuration** — `apps/api/src/config.ts` is the single env-driven config surface (port,
+  free-shipping threshold, flat shipping fee). Tax is per product (`taxRateBps`); the database URL
+  joins this surface only if the optional Postgres tier is enabled.
 - **Build & CI/CD** — `.github/workflows/deploy.yml` runs build → test → deploy on the configured
   branch.
 - **Containerization** — `apps/*/Dockerfile` + `docker-compose.yml` bring the whole stack up together.
